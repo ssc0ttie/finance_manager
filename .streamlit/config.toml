@@ -1,0 +1,9 @@
+[server]
+runOnSave = true
+
+[theme]
+primaryColor = "#b37a4c"              # Warm coffee brown
+backgroundColor = "#faf7f2"           # Cream white
+secondaryBackgroundColor = "#e8dfd3"  # Sand beige
+textColor = "#3d2c24"                 # Espresso brown
+font = "sans serif"
