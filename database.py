@@ -2,7 +2,9 @@ import supabase_client
 import streamlit as st
 
 
-supabase = supabase_client.init_connection()
+# supabase = supabase_client.init_connection()
+# Initialize supabase client
+supabase = supabase_client.get_supabase_client()
 
 
 def fetch_all_transactions(page_size=1000):
