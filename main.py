@@ -3,12 +3,12 @@ import database as db
 import pandas as pd
 
 
-st.set_page_config(
-    page_title="Finance Manager",
-    page_icon="💰",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+# st.set_page_config(
+#     page_title="Finance Manager",
+#     page_icon="💰",
+#     layout="wide",
+#     initial_sidebar_state="expanded",
+# )
 
 
 # Initialize active page state
@@ -42,8 +42,11 @@ if page == "Goodget":
     df_txn = pd.DataFrame(txn)
     df_txn["date"] = pd.to_datetime(df_txn["date"])
     df_txn["year_month"] = df_txn["date"].dt.to_period("M")
+    df_txn["year"] = df_txn["date"].dt.to_period("Y")
 
-    df_txn_grouped = df_txn.groupby((["category", "year_month"]), as_index=False).agg(
+    df_txn_grouped = df_txn.groupby(
+        (["category", "year_month", "year"]), as_index=False
+    ).agg(
         {
             "amount": "sum",
         }
@@ -53,8 +56,27 @@ if page == "Goodget":
     df_bud = pd.DataFrame(bud)
     df_bud["date"] = pd.to_datetime(df_bud["date"])
     df_bud["year_month"] = df_bud["date"].dt.to_period("M")
+    df_bud["year"] = df_bud["date"].dt.to_period("Y")
+    df_bud = df_bud[df_bud["year_month"].dt.year != 2021]
 
-    df_bud_grouped = df_bud.groupby((["category", "year_month"]), as_index=False).agg(
+    df_bud_grouped = df_bud.groupby(
+        (["category", "year_month", "year"]), as_index=False
+    ).agg(
+        {
+            "amount": "sum",
+        }
+    )
+
+    ############# Basic Cleanup INC #######################
+    df_inc = pd.DataFrame(inc)
+    df_inc["date"] = pd.to_datetime(df_inc["date"])
+    df_inc["year_month"] = df_inc["date"].dt.to_period("M")
+    df_inc["year"] = df_inc["date"].dt.to_period("Y")
+    df_inc = df_inc[df_inc["year_month"].dt.year != 2021]
+
+    df_inc_grouped = df_inc.groupby(
+        (["category", "year_month", "year"]), as_index=False
+    ).agg(
         {
             "amount": "sum",
         }
@@ -63,14 +85,15 @@ if page == "Goodget":
     #################JOIN TXN + BUDGET  #################
 
     merged_df = pd.merge(
-        df_txn_grouped, df_bud_grouped, on=(["category", "year_month"]), how="outer"
+        df_txn_grouped,
+        df_bud_grouped,
+        on=(["category", "year_month", "year"]),
+        how="outer",
     )
 
     merged_df = merged_df[
-        ~merged_df["category"].isin(
-            ["ETF Actual", "Travel Actual", "Tax Actual", "Cushion Actual", 0]
-        )
-    ]  # filter non running activity
+        ~merged_df["category"].str.contains("actual", case=False, na=False)
+    ]
 
     #################### some basic cleanup #############
     merged_df = merged_df.rename(columns={"amount_x": "actual", "amount_y": "budget"})
@@ -82,20 +105,36 @@ if page == "Goodget":
     ########JOIN Actual and Budget ###
 
     ################## FILTER SECTION ############################
-    month = sorted(merged_df["year_month"].dropna().unique(), reverse=True)
-    month.insert(0, "All")
-    selected_month = st.multiselect("Select Month(s)", month, default=["All"])
 
-    if not selected_month or "All" in selected_month:
-        merged_df = merged_df
+    # --- YEAR FILTER ---
+    year_list = sorted(merged_df["year"].dropna().unique(), reverse=True)
+    year_list.insert(0, "All")
+
+    selected_years = st.multiselect("Select Year(s)", year_list, default=["All"])
+
+    # Apply year filter (if not All)
+    if "All" in selected_years:
+        df_year_filtered = merged_df.copy()
     else:
-        merged_df = merged_df[merged_df["year_month"].isin(selected_month)]
+        df_year_filtered = merged_df[merged_df["year"].isin(selected_years)]
 
-    table_merged_df = merged_df.groupby((["category"]), as_index=False).agg(
-        {
-            "actual": "sum",
-            "budget": "sum",
-        }
+    # --- MONTH FILTER (DEPENDENT ON YEAR) ---
+    month_list = sorted(df_year_filtered["year_month"].dropna().unique(), reverse=True)
+    month_list.insert(0, "All")
+
+    selected_months = st.multiselect("Select Month(s)", month_list, default=["All"])
+
+    # Apply month filter (if not All)
+    if "All" in selected_months:
+        df_filtered = df_year_filtered.copy()
+    else:
+        df_filtered = df_year_filtered[
+            df_year_filtered["year_month"].isin(selected_months)
+        ]
+
+    # --- FINAL GROUPBY ---
+    table_merged_df = df_filtered.groupby(["category"], as_index=False).agg(
+        {"actual": "sum", "budget": "sum"}
     )
 
     table_merged_df["diff"] = table_merged_df["budget"] - table_merged_df["actual"]
@@ -109,6 +148,19 @@ if page == "Goodget":
         }
     )
 
+    renamed_inc = df_inc_grouped.rename(
+        columns={
+            "category": "Income Category",
+            "amount": "Income",
+        }
+    )
+
+    ################THOSE WITH ACTUALS####################################
+
+    merged_df_actuals = merged_df[
+        merged_df["category"].str.contains("actual", case=False, na=False)
+    ]
+
     ###################### METRICS #####################
 
     import charts.balance
@@ -120,6 +172,10 @@ if page == "Goodget":
     import charts.dataframe_table
 
     charts.dataframe_table.generate_table(renamed_df)
+
+    charts.dataframe_table.generate_table_actuals(merged_df_actuals)
+
+    # charts.dataframe_table.generate_table_actuals(table_merged_df_actuals)
 
     import charts.barchart
 

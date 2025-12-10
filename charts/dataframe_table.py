@@ -17,3 +17,10 @@ def generate_table(data):
         ),
         use_container_width=True,
     )
+
+
+def generate_table_actuals(data):
+    st.dataframe(
+        data,
+        use_container_width=True,
+    )
