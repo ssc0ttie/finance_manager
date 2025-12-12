@@ -63,7 +63,7 @@ def metric_sections(data):
     col3.metric(
         "Variance",
         value=grand_total_diff,
-        delta=f"{diff_value:,.0f}",
+        # delta=f"{diff_value:,.0f}",
         delta_color="inverse" if diff_value < 0 else "normal",
         label_visibility="visible",
         border=True,
@@ -272,7 +272,7 @@ def get_bank_balance_2(
         st.metric(
             "Bank Balance",
             value=balance,
-            delta=f"${total_diff:,.0f} variance",
+            # delta=f"${total_diff:,.0f} variance",
             label_visibility="visible",
             border=True,
         )
