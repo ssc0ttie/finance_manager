@@ -180,7 +180,7 @@ def create_budget_vs_actual_charts(df):
     """
     Create multiple visualizations for budget vs actual analysis
     """
-    st.subheader("📊 Budget vs Actual Analysis")
+    # st.subheader("📊 Budget vs Actual Analysis")
 
     # 1. Grouped bar chart
     fig1 = create_grouped_barchart_plotly(df)
