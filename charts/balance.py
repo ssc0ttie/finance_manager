@@ -281,34 +281,37 @@ def get_bank_balance_2(
         display_df = combined_budgeted_interest.copy()
         display_df["amount"] = display_df["amount"].apply(lambda x: f"${x:,.2f}")
 
-        st.dataframe(
-            display_df,
-            use_container_width=True,
-        )
-    with col2:
-        # Format amounts for display
-        formatted_amounts = [f"${x:,.2f}" for x in combined_budgeted_interest["amount"]]
-
-        # 3. Donut chart for balance distribution
-        fig3 = go.Figure(
-            data=[
-                go.Pie(
-                    labels=combined_budgeted_interest["category"],
-                    values=combined_budgeted_interest["amount"],
-                    hole=0.3,
-                    textinfo="label+value",  # Show label and raw value
-                    texttemplate="%{label}<br>%{value:$,.2f}<br>(%{percent:.1%})",  # Custom format
-                    textposition="inside",
-                    marker=dict(colors=px.colors.qualitative.Set3),
-                    hovertemplate="<b>%{label}</b><br>"
-                    + "Amount: %{value:$,.2f}<br>"
-                    + "Percentage: %{percent:.1%}<br>"
-                    + "<extra></extra>",
-                )
+        with st.expander("View Detailed Distribution"):
+            st.dataframe(
+                display_df,
+                use_container_width=True,
+            )
+        with col2:
+            # Format amounts for display
+            formatted_amounts = [
+                f"${x:,.2f}" for x in combined_budgeted_interest["amount"]
             ]
-        )
-        fig3.update_layout(title="Balances Distribution")
-        st.plotly_chart(fig3, use_container_width=True)
+
+            # 3. Donut chart for balance distribution
+            fig3 = go.Figure(
+                data=[
+                    go.Pie(
+                        labels=combined_budgeted_interest["category"],
+                        values=combined_budgeted_interest["amount"],
+                        hole=0.3,
+                        textinfo="label+value",  # Show label and raw value
+                        texttemplate="%{label}<br>%{value:$,.2f}<br>(%{percent:.1%})",  # Custom format
+                        textposition="inside",
+                        marker=dict(colors=px.colors.qualitative.Set3),
+                        hovertemplate="<b>%{label}</b><br>"
+                        + "Amount: %{value:$,.2f}<br>"
+                        + "Percentage: %{percent:.1%}<br>"
+                        + "<extra></extra>",
+                    )
+                ]
+            )
+            fig3.update_layout(title="Balances Distribution")
+            st.plotly_chart(fig3, use_container_width=True)
         # """DEBUG SECTION"""
 
     # st.dataframe(df_from_2024)

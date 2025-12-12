@@ -166,7 +166,7 @@ if page == "Goodget":
         merged_df, df_rawbudget, merged_df_actual, merged_df, df_raw_interest
     )
     st.divider()
-    st.subheader("📊 Budget vs Actual Analysis")
+    st.subheader("📊 Expenses :  Budget vs Actual Analysis")
     ################## FILTER SECTION ############################
 
     # --- YEAR FILTER ---
@@ -278,10 +278,16 @@ elif page == "Travel":
     import entry_form
     import database as db
 
+    st.header("💰 Travel Expense - Analyzer")
+    st.divider()
+
     ####TRIPS DATA #############
-    trips = db.fetch_travel_budget()
-    trips_df = pd.DataFrame(trips)
+
+    df_trips_budget = db.fetch_travel_budget()
+    trips_df = pd.DataFrame(df_trips_budget)
     unique_trips = trips_df["trip"].unique()
+
+    st.dataframe(trips_df)
 
     trip_name = st.selectbox(
         "Trip",
