@@ -103,6 +103,28 @@ def fetch_travel_budget(page_size=1000):
 
     return all_rows
 
+def fetch_travel_actual(page_size=1000):
+    all_rows = []
+    start = 0
+
+    while True:
+        end = start + page_size - 1
+
+        response = (
+            supabase.table("travel_actual").select("*").range(start, end).execute()
+        )
+
+        batch = response.data
+
+        # Stop when no more results
+        if not batch:
+            break
+
+        all_rows.extend(batch)
+        start += page_size
+
+    return all_rows
+
 
 def add_expense(type, expense, date, desc, amount):
     try:

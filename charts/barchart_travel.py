@@ -13,10 +13,10 @@ def create_grouped_barchart_plotly(df):
     fig.add_trace(
         go.Bar(
             x=df["category"],
-            y=df["actual"],
+            y=df["actual_local"],
             name="Actual",
             marker_color="#FF6B6B",
-            text=[f"${x:,.0f}" for x in df["actual"]],
+            text=[f"${x:,.0f}" for x in df["actual_local"]],
             textposition="outside",
             width=0.4,
             offset=-0.2,  # Offset to create side-by-side effect
@@ -27,10 +27,10 @@ def create_grouped_barchart_plotly(df):
     fig.add_trace(
         go.Bar(
             x=df["category"],
-            y=df["budget"],
+            y=df["budget_local"],
             name="Budget",
             marker_color="#4ECDC4",
-            text=[f"${x:,.0f}" for x in df["budget"]],
+            text=[f"${x:,.0f}" for x in df["budget_local"]],
             textposition="outside",
             width=0.4,
             offset=0.2,  # Offset to create side-by-side effect
@@ -147,7 +147,7 @@ def create_budget_vs_actual_charts(df):
             data=[
                 go.Pie(
                     labels=df["category"],
-                    values=df["actual"],
+                    values=df["actual_sgd"],
                     hole=0.3,
                     textinfo="label+percent",
                     textposition="inside",

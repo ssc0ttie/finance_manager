@@ -277,15 +277,56 @@ def get_bank_balance_2(
             border=True,
         )
 
+        # # Create a copy to avoid modifying original data
+        # display_df = combined_budgeted_interest.copy()
+        # display_df["amount"] = display_df["amount"].apply(lambda x: f"${x:,.2f}")
+
+        # cats_to_keep = ["Cushion", "Emergency", "Interest"]
+
+        # # df_inv = df_tnx[df_tnx["category"].isin(cats_to_keep)]
+
+        # display_df_accrual = display_df[display_df["category"].isin(cats_to_keep)]
+        # display_df_accrual = pd.to_numeric(display_df_accrual["amount"])
+
+        # total_accrual = display_df_accrual["amount"].sum()
+
+        # display_df_cash = display_df[~display_df["category"].isin(cats_to_keep)]
+        # total_cash = display_df[~display_df["category"].isin(cats_to_keep)][
+        #     "amount"
+        # ].sum()
+
         # Create a copy to avoid modifying original data
         display_df = combined_budgeted_interest.copy()
-        display_df["amount"] = display_df["amount"].apply(lambda x: f"${x:,.2f}")
+        # DO NOT format as currency here! Keep as numbers for calculations
+
+        cats_to_keep = ["Cushion", "Emergency", "Interest"]
+
+        # Calculate ACCRUAL total
+        display_df_accrual = display_df[~display_df["category"].isin(cats_to_keep)]
+        total_accrual = display_df_accrual["amount"].sum()
+
+        # Calculate CASH total
+        display_df_cash = display_df[display_df["category"].isin(cats_to_keep)]
+        total_cash = display_df_cash["amount"].sum()
+
+        # Only format for display if needed
+        display_df_display = display_df.copy()
+        display_df_display["amount"] = display_df_display["amount"].apply(
+            lambda x: f"${x:,.2f}"
+        )
 
         with st.expander("View Detailed Distribution"):
+            st.subheader(f"Cash: ${total_cash:,.0f}")
             st.dataframe(
-                display_df,
+                display_df_cash,
                 use_container_width=True,
             )
+            st.subheader(f"Accrual: ${total_accrual:,.0f}")
+            st.dataframe(
+                display_df_accrual,
+                use_container_width=True,
+            )
+
         with col2:
             # Format amounts for display
             formatted_amounts = [
@@ -401,3 +442,38 @@ def get_bank_balance_simple(renamed_df, previous_balance=0):
 #         )
 #         fig3.update_layout(title="Balances Distribution")
 #         st.plotly_chart(fig3, use_container_width=True)
+
+
+def metric_sections_travel(data):
+    # 'data' is the RENAMED dataframe (after renaming)
+    # Make sure the column names match what you renamed them to
+    col1, col2, col3 = st.columns(3)
+
+    grand_total_act = f"${data['actual_sgd'].sum():,.0f}"
+    grand_total_bud = f"${data['budget_sgd'].sum():,.0f}"
+    grand_total_diff = f"${data['diff'].sum():,.0f}"
+
+    diff_value = data["diff"].sum()
+
+    col1.metric(
+        "Actual Spent",
+        value=grand_total_act,
+        label_visibility="visible",
+        border=True,
+    )
+
+    col2.metric(
+        "Budgeted Amount",
+        value=grand_total_bud,
+        label_visibility="visible",
+        border=True,
+    )
+
+    col3.metric(
+        "Variance",
+        value=grand_total_diff,
+        # delta=f"{diff_value:,.0f}",
+        delta_color="inverse" if diff_value < 0 else "normal",
+        label_visibility="visible",
+        border=True,
+    )
