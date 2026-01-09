@@ -163,27 +163,30 @@ def get_bank_balance_2(
     3. Actual amounts (current year)
     4. Plus the diff/variance from main calculation
     """
-    st.subheader("📊 Balances")
-    max_year = merged_df["year"].max()
-    max_year_actual = merged_df_actual["year"].max()
+    # st.subheader("📊 Balances")
+    # max_year = merged_df["year"].max()
+    # max_year_actual = merged_df_actual["year"].max()
 
     # Get current year budgeted amounts
-    sum_by_cat_budget = merged_df_budgeted[merged_df_budgeted["year"] == max_year]
+    # sum_by_cat_budget = merged_df_budgeted[merged_df_budgeted["year"] == max_year]
     sum_by_cat_budget = (
-        sum_by_cat_budget.groupby("category").agg({"amount": "sum"}).reset_index()
+        merged_df_budgeted.groupby("category").agg({"amount": "sum"}).reset_index()
     )
+    sum_by_cat_actual = merged_df_actual.copy()
+
     # sum_by_cat_budget = sum_by_cat_budget.rename(columns={"amount_x": "amount"})
     total_budgeted = sum_by_cat_budget["amount"].sum()
 
+    st.write(f"sum budget by cat{total_budgeted}")
     # Get current year actual amounts
-    sum_by_cat_actual = merged_df_actual[merged_df_actual["year"] == max_year]
+    # sum_by_cat_actual = merged_df_actual[merged_df_actual["year"] == max_year]
 
     sum_by_cat_actual_interest = df_raw_interest[
         df_raw_interest["category"] == "Interest"
     ]
-    sum_by_cat_actual_interest = sum_by_cat_actual_interest[
-        sum_by_cat_actual_interest["year"] == max_year
-    ]
+    # sum_by_cat_actual_interest = sum_by_cat_actual_interest[
+    #     sum_by_cat_actual_interest["year"] == max_year
+    # ]
 
     sum_by_cat_actual_interest = (
         sum_by_cat_actual_interest.groupby("category")
@@ -193,16 +196,17 @@ def get_bank_balance_2(
     total_interest = sum_by_cat_actual_interest["amount"].sum() * -1
 
     sum_by_cat_actual = (
-        sum_by_cat_actual.groupby("category").agg({"amount_x": "sum"}).reset_index()
+        sum_by_cat_actual.groupby("category").agg({"amount": "sum"}).reset_index()
     )
-    sum_by_cat_actual = sum_by_cat_actual.rename(columns={"amount_x": "amount"})
+    # sum_by_cat_actual = sum_by_cat_actual.rename(columns={"amount": "amount"})
 
     total_actual = sum_by_cat_actual["amount"].sum()
 
     #### GET VARIANCE #####
-    sum_by_cat_var = merged_df[merged_df["year"] == max_year]
 
-    sum_by_cat_var = sum_by_cat_var.groupby(["category"], as_index=False).agg(
+    # # sum_by_cat_var = merged_df[merged_df["year"] == max_year]
+
+    sum_by_cat_var = merged_df.groupby(["category"], as_index=False).agg(
         {"actual": "sum", "budget": "sum"}
     )
     sum_by_cat_var["diff"] = sum_by_cat_var["budget"] - sum_by_cat_var["actual"]
@@ -210,10 +214,10 @@ def get_bank_balance_2(
     ### HARDCODED BUDGET FROM 2024 ####
     df_from_2024 = pd.DataFrame(
         {
-            "Tax budgeted": [3074.00],
-            "Emergency budgeted": [13153.00],
-            "Cushion budgeted": [12387.00],
-            "Travel budgeted": [2455.00],
+            "Tax budgeted": [1361.00],
+            "Emergency budgeted": [13502.00],
+            "Cushion budgeted": [17181.00],
+            "Travel budgeted": [3496.00],
             "ETF budgeted": [0.00],
             "Interest budgeted": [0.00],
             "Investment budgeted": [0.00],
@@ -255,13 +259,19 @@ def get_bank_balance_2(
     )
     # Get base sum (ETF budgeted + Historical 2024 - ETF Actual)
     base_sum = combined_budgeted["amount"].sum()
+    st.write(f"total base : {base_sum}")
 
-    # Now add the diff from main.py
-    # Get the total diff/variance from renamed_df
+    # # Now add the diff from main.py
+    # # Get the total diff/variance from renamed_df
     total_diff = sum_by_cat_var["diff"].sum()
 
     # Final bank balance = base_sum + total_diff
-    final_balance = base_sum + total_diff + total_interest
+    final_balance = base_sum + total_interest - total_actual - total_df_from_2024
+
+    st.write(f"total actuals : {total_actual}")
+    st.write(f"total diff : {total_diff}")
+    st.write(f"total from 2024 : {total_df_from_2024}")
+    st.write(f"total int : {total_interest}")
 
     balance = f"${final_balance:,.0f}"
 

@@ -23,7 +23,7 @@ with st.sidebar:
         [
             "Goodget",
             "Shared Expenses",
-            "Travel",
+            # "Travel",
             "Investment",
             "Help",
             "Entry",
@@ -35,7 +35,7 @@ st.session_state.active_page = page
 
 if page == "Goodget":
 
-    st.header("💰 Goodget - Personal Budget Analyzer")
+    st.header("💰 Goodget - Personal Budget Tracker")
     st.divider()
     # """fetch all data once"""
     txn = db.fetch_all_transactions()
@@ -62,6 +62,48 @@ if page == "Goodget":
     df_txn_grouped = df_txn_grouped[
         ~df_txn_grouped["category"].str.contains("actual", case=False, na=False)
     ]
+
+    ############ CAPTURE ALL WITH ACTUALS ######
+    df_txn_grouped_actuals = df_txn_grouped_base[
+        df_txn_grouped_base["category"].str.contains("actual", case=False, na=False)
+    ]
+    df_txn_grouped_actuals_interest = df_txn_grouped_base[
+        df_txn_grouped_base["category"].str.contains("interest", case=False, na=False)
+    ]
+
+    # df_txn_grouped_actuals_interest["amount"] = (
+    #     df_txn_grouped_actuals_interest["amount"] * -1
+    # )
+
+    df_txn_grouped_actuals_all = pd.concat(
+        [df_txn_grouped_actuals, df_txn_grouped_actuals_interest], ignore_index=True
+    )
+
+    # df_txn_grouped_actuals = df_txn_grouped_actuals.groupby(
+    #     (["category", "year_month", "year"]), as_index=False
+    # ).agg(
+    #     {
+    #         "amount": "sum",
+    #     }
+    # )
+    # st.dataframe(df_txn_grouped_actuals)
+    # st.dataframe(df_txn_grouped_actuals_interest)
+    # st.dataframe(df_txn_grouped_actuals_all)
+
+    totat_by_cat = df_txn_grouped_actuals_all.groupby(
+        (["category"]), as_index=False
+    ).agg(
+        {
+            "amount": "sum",
+        }
+    )
+
+    st.dataframe(totat_by_cat)
+
+    "GOODS ^"
+
+    total_of_all_with_actual = df_txn_grouped_actuals_all["amount"].sum()
+    st.write(total_of_all_with_actual)
 
     df_cats = pd.DataFrame(cats)
 
@@ -118,6 +160,8 @@ if page == "Goodget":
         how="outer",
     )
 
+    # st.dataframe(merged_df_for_actual)
+
     merged_df_for_budgeted = pd.merge(
         df_txn_grouped_base,
         df_bud_grouped,
@@ -130,7 +174,7 @@ if page == "Goodget":
         merged_df_for_actual["category"].str.contains("actual", case=False, na=False)
     ]
 
-    merged_df_actual["amount_x"] = merged_df_actual["amount_x"] * -1
+    # merged_df_actual["amount_x"] = merged_df_actual["amount_x"] * -1
 
     df_raw_interest = df_txn_grouped.copy()
 
@@ -170,11 +214,40 @@ if page == "Goodget":
     df_rawbudget = df_rawbudget[
         df_rawbudget["category"].str.contains("budget", case=False, na=False)
     ]
+    st.write("budget raw")
+    df_rawbudget = df_rawbudget.groupby(["category"]).agg(
+        {
+            "amount": "sum",
+        }
+    )
 
+    st.dataframe(df_rawbudget)
+    st.write(df_rawbudget["amount"].sum())
+
+    "GOODS Budget raw^"
+    total_merged_df_bycat = merged_df.groupby(["category"]).agg(
+        {
+            "actual": "sum",
+            "budget": "sum",
+        }
+    )
+
+    st.dataframe(total_merged_df_bycat)
+
+    total_merged_df = total_merged_df_bycat["actual"].sum()
+    st.write(total_merged_df)
+
+    "GOODS Actual Spend^"
+    st.dataframe(total_merged_df_bycat)
+
+    total_merged_df_budget = total_merged_df_bycat["budget"].sum()
+    st.write(total_merged_df_budget)
+
+    "GOODS Budget Spend^"
     #############################CAPTURE BANK BALANCE #####################################
 
     charts.balance.get_bank_balance_2(
-        merged_df, df_rawbudget, merged_df_actual, merged_df, df_raw_interest
+        merged_df, df_rawbudget, totat_by_cat, merged_df, df_raw_interest
     )
     st.divider()
     st.subheader("📊 Expenses :  Budget vs Actual Analysis")
@@ -327,113 +400,114 @@ elif page == "Entry":
         # st.dataframe(df_txn)
 
 
-elif page == "Travel":
-    import entry_form
-    import database as db
-    import charts.barchart_travel
+# elif page == "Travel":
+#     import entry_form
+#     import database as db
+#     import charts.barchart_travel
 
-    st.header("💰 Travel Expense - Analyzer")
-    st.divider()
+#     st.header("💰 Travel Expense - Analyzer")
+#     st.divider()
 
-    ####FETCH ALL TRIPS DATA #############
+#     ####FETCH ALL TRIPS DATA #############
 
-    trips_actual = db.fetch_travel_actual()
-    trips_budget = db.fetch_travel_budget()
+#     trips_actual = db.fetch_travel_actual()
+#     trips_budget = db.fetch_travel_budget()
 
-    df_trips_budget = pd.DataFrame(trips_budget)
-    df_trips_actual = pd.DataFrame(trips_actual)
+#     df_trips_budget = pd.DataFrame(trips_budget)
+#     df_trips_actual = pd.DataFrame(trips_actual)
 
-    unique_trips = df_trips_budget["trip"].unique()
-    unique_remarks = df_trips_budget["remarks"].unique()
+#     unique_trips = df_trips_budget["trip"].unique()
+#     unique_remarks = df_trips_budget["remarks"].unique()
+#     unique_remarks = df_trips_budget["remarks"].notna()
 
-    ############# Basic Cleanup travel budget #######################
-    df_trips_budget["date"] = pd.to_datetime(df_trips_budget["date"])
-    df_trips_budget_grouped = df_trips_budget.groupby(
-        (["category", "trip", "remarks"]), as_index=False
-    ).agg(
-        {
-            "budget_sgd": "sum",
-            "budget_local": "sum",
-        }
-    )
-    ############# Basic Cleanup travel actual #######################
-    df_trips_actual["date"] = pd.to_datetime(df_trips_actual["date"])
-    df_trips_actual_grouped = df_trips_actual.groupby(
-        (["category", "trip", "remarks"]), as_index=False
-    ).agg(
-        {
-            "actual_sgd": "sum",
-            "actual_local": "sum",
-        }
-    )
+#     ############# Basic Cleanup travel budget #######################
+#     df_trips_budget["date"] = pd.to_datetime(df_trips_budget["date"])
+#     df_trips_budget_grouped = df_trips_budget.groupby(
+#         (["category", "trip", "remarks"]), as_index=False
+#     ).agg(
+#         {
+#             "budget_sgd": "sum",
+#             "budget_local": "sum",
+#         }
+#     )
+#     ############# Basic Cleanup travel actual #######################
+#     df_trips_actual["date"] = pd.to_datetime(df_trips_actual["date"])
+#     df_trips_actual_grouped = df_trips_actual.groupby(
+#         (["category", "trip", "remarks"]), as_index=False
+#     ).agg(
+#         {
+#             "actual_sgd": "sum",
+#             "actual_local": "sum",
+#         }
+#     )
 
-    #################JOIN TXN + BUDGET  #################
+#     #################JOIN TXN + BUDGET  #################
 
-    merged_df_travel = pd.merge(
-        df_trips_actual_grouped,
-        df_trips_budget_grouped,
-        on=(["category", "trip", "remarks"]),
-        how="outer",
-    )
+#     merged_df_travel = pd.merge(
+#         df_trips_actual_grouped,
+#         df_trips_budget_grouped,
+#         on=(["category", "trip", "remarks"]),
+#         how="outer",
+#     )
 
-    #################### some basic cleanup #############
-    merged_df_travel["category"] = merged_df_travel["category"].str.capitalize()
-    merged_df_travel["diff"] = (
-        merged_df_travel["budget_sgd"] - merged_df_travel["actual_sgd"]
-    )
-    merged_df_travel["diff_local"] = (
-        merged_df_travel["budget_local"] - merged_df_travel["actual_local"]
-    )
-    ################## FILTER SECTION ############################
-    st.subheader("📊 Travel Expenses :  Budget vs Actual Analysis")
-    # --- Trip FILTER ---
-    trip_list = sorted(merged_df_travel["trip"].dropna().unique(), reverse=True)
-    trip_list.insert(0, "All")
+#     #################### some basic cleanup #############
+#     merged_df_travel["category"] = merged_df_travel["category"].str.capitalize()
+#     merged_df_travel["diff"] = (
+#         merged_df_travel["budget_sgd"] - merged_df_travel["actual_sgd"]
+#     )
+#     merged_df_travel["diff_local"] = (
+#         merged_df_travel["budget_local"] - merged_df_travel["actual_local"]
+#     )
+#     ################## FILTER SECTION ############################
+#     st.subheader("📊 Travel Expenses :  Budget vs Actual Analysis")
+#     # --- Trip FILTER ---
+#     trip_list = sorted(merged_df_travel["trip"].dropna().unique(), reverse=True)
+#     trip_list.insert(0, "All")
 
-    selected_trip = st.multiselect("Select Trip", trip_list, default=["All"])
+#     selected_trip = st.multiselect("Select Trip", trip_list, default=["All"])
 
-    # Apply year filter (if not All)
-    if "All" in selected_trip:
-        df_trip_filtered = merged_df_travel.copy()
-    else:
-        df_trip_filtered = merged_df_travel[
-            merged_df_travel["trip"].isin(selected_trip)
-        ]
+#     # Apply year filter (if not All)
+#     if "All" in selected_trip:
+#         df_trip_filtered = merged_df_travel.copy()
+#     else:
+#         df_trip_filtered = merged_df_travel[
+#             merged_df_travel["trip"].isin(selected_trip)
+#         ]
 
-    ################### CHARTS SECTION ###################
-    charts.balance.metric_sections_travel(df_trip_filtered)
+#     ################### CHARTS SECTION ###################
+#     charts.balance.metric_sections_travel(df_trip_filtered)
 
-    # Get numeric columns
-    numeric_columns = df_trip_filtered.select_dtypes(
-        include=["int64", "float64"]
-    ).columns
+#     # Get numeric columns
+#     numeric_columns = df_trip_filtered.select_dtypes(
+#         include=["int64", "float64"]
+#     ).columns
 
-    # Create format dictionary for all numeric columns
-    format_dict = {col: "{:,.0f}" for col in numeric_columns}
+#     # Create format dictionary for all numeric columns
+#     format_dict = {col: "{:,.0f}" for col in numeric_columns}
 
-    st.dataframe(df_trip_filtered.style.format(format_dict), use_container_width=True)
+#     st.dataframe(df_trip_filtered.style.format(format_dict), use_container_width=True)
 
-    charts.barchart_travel.create_budget_vs_actual_charts(df_trip_filtered)
+#     charts.barchart_travel.create_budget_vs_actual_charts(df_trip_filtered)
 
-    trip_name = st.selectbox(
-        "Trip",
-        sorted(unique_trips),
-        index=0,
-        placeholder="Select Trip",
-        key="trip",
-    )
+#     trip_name = st.selectbox(
+#         "Trip",
+#         sorted(unique_trips),
+#         index=0,
+#         placeholder="Select Trip",
+#         key="trip",
+#     )
 
-    trip_remarks = st.selectbox(
-        "Remarks",
-        sorted(unique_remarks),
-        index=0,
-        placeholder="Remarks",
-        key="remarks",
-    )
+#     trip_remarks = st.selectbox(
+#         "Remarks",
+#         sorted(unique_remarks),
+#         index=0,
+#         placeholder="Remarks",
+#         key="remarks",
+#     )
 
-    entry_form.travel_form(trip_name)
-    with st.expander("Travel Budget Setup"):
-        entry_form.travel_budget_form()
+#     entry_form.travel_form(trip_name)
+#     with st.expander("Travel Budget Setup"):
+#         entry_form.travel_budget_form()
 
 
 if page == "Investment":

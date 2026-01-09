@@ -103,6 +103,7 @@ def fetch_travel_budget(page_size=1000):
 
     return all_rows
 
+
 def fetch_travel_actual(page_size=1000):
     all_rows = []
     start = 0
@@ -188,7 +189,7 @@ def add_travel_expense(trip, expense, date, desc, amount, payment):
             "category": expense,
             "date": date,
             "description": desc,
-            "amount": amount,
+            "actual_sgd": amount,
             "payment": payment,
         }
         response = supabase.table("travel_actual").insert(expense_data).execute()
