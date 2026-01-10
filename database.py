@@ -67,7 +67,7 @@ def fetch_all_income(page_size=1000):
     while True:
         end = start + page_size - 1
 
-        response = supabase.table("budget").select("*").range(start, end).execute()
+        response = supabase.table("income").select("*").range(start, end).execute()
 
         batch = response.data
 

@@ -71,24 +71,12 @@ if page == "Goodget":
         df_txn_grouped_base["category"].str.contains("interest", case=False, na=False)
     ]
 
-    # df_txn_grouped_actuals_interest["amount"] = (
-    #     df_txn_grouped_actuals_interest["amount"] * -1
-    # )
+
 
     df_txn_grouped_actuals_all = pd.concat(
         [df_txn_grouped_actuals, df_txn_grouped_actuals_interest], ignore_index=True
     )
 
-    # df_txn_grouped_actuals = df_txn_grouped_actuals.groupby(
-    #     (["category", "year_month", "year"]), as_index=False
-    # ).agg(
-    #     {
-    #         "amount": "sum",
-    #     }
-    # )
-    # st.dataframe(df_txn_grouped_actuals)
-    # st.dataframe(df_txn_grouped_actuals_interest)
-    # st.dataframe(df_txn_grouped_actuals_all)
 
     totat_by_cat = df_txn_grouped_actuals_all.groupby(
         (["category"]), as_index=False
@@ -98,12 +86,13 @@ if page == "Goodget":
         }
     )
 
-    st.dataframe(totat_by_cat)
+#    #Debug#
+#     st.dataframe(totat_by_cat)
 
-    "GOODS ^"
+#     "GOODS ^"
 
     total_of_all_with_actual = df_txn_grouped_actuals_all["amount"].sum()
-    st.write(total_of_all_with_actual)
+    # st.write(total_of_all_with_actual)
 
     df_cats = pd.DataFrame(cats)
 
@@ -214,41 +203,58 @@ if page == "Goodget":
     df_rawbudget = df_rawbudget[
         df_rawbudget["category"].str.contains("budget", case=False, na=False)
     ]
-    st.write("budget raw")
-    df_rawbudget = df_rawbudget.groupby(["category"]).agg(
-        {
-            "amount": "sum",
-        }
-    )
 
-    st.dataframe(df_rawbudget)
-    st.write(df_rawbudget["amount"].sum())
+    #Debug#
+    # st.write("budget raw")
+    # df_rawbudget = df_rawbudget.groupby(["category"]).agg(
+    #     {
+    #         "amount": "sum",
+    #     }
+    # )
 
-    "GOODS Budget raw^"
-    total_merged_df_bycat = merged_df.groupby(["category"]).agg(
-        {
-            "actual": "sum",
-            "budget": "sum",
-        }
-    )
+    # st.dataframe(df_rawbudget)
+    # st.write(df_rawbudget["amount"].sum())
 
-    st.dataframe(total_merged_df_bycat)
+    # "GOODS Budget raw^"
+    # total_merged_df_bycat = merged_df.groupby(["category"]).agg(
+    #     {
+    #         "actual": "sum",
+    #         "budget": "sum",
+    #     }
+    # )
 
-    total_merged_df = total_merged_df_bycat["actual"].sum()
-    st.write(total_merged_df)
+    # st.dataframe(total_merged_df_bycat)
 
-    "GOODS Actual Spend^"
-    st.dataframe(total_merged_df_bycat)
+    # total_merged_df = total_merged_df_bycat["actual"].sum()
+    # st.write(total_merged_df)
 
-    total_merged_df_budget = total_merged_df_bycat["budget"].sum()
-    st.write(total_merged_df_budget)
+    # "GOODS Actual Spend^"
+    # st.dataframe(total_merged_df_bycat)
 
-    "GOODS Budget Spend^"
+    # total_merged_df_budget = total_merged_df_bycat["budget"].sum()
+    # st.write(total_merged_df_budget)
+
+    # "GOODS Budget Spend^"
+    # total_income_df_bycat = df_inc_grouped.groupby(["category"]).agg(
+    #     {
+    #         "amount": "sum",
+    #     }
+    # )
+
+    # st.dataframe(total_income_df_bycat)
+
+    # total_income = total_income_df_bycat["amount"].sum()
+    # st.write(total_income)
+    
+    # "BAD Income ^"
+    
     #############################CAPTURE BANK BALANCE #####################################
 
     charts.balance.get_bank_balance_2(
-        merged_df, df_rawbudget, totat_by_cat, merged_df, df_raw_interest
+        merged_df, df_rawbudget, totat_by_cat, merged_df, df_raw_interest, df_inc_grouped
     )
+
+
     st.divider()
     st.subheader("📊 Expenses :  Budget vs Actual Analysis")
     ################## FILTER SECTION ############################

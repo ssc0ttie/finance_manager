@@ -88,73 +88,13 @@ def metric_sections_income(data):
         border=True,
     )
 
-
-def get_bank_balance(merged_df, merged_df_budgeted, merged_df_actual):
-
-    max_year = merged_df["year"].max()
-    max_year_actual = merged_df_actual["year"].max()
-
-    sum_by_cat = merged_df[merged_df["year"] == max_year]
-    sum_by_cat_budget = merged_df_budgeted[merged_df_budgeted["year"] == max_year]
-    sum_by_cat_actual = merged_df_actual[merged_df_actual["year"] == max_year]
-
-    sum_by_cat_actual = (
-        sum_by_cat_actual.groupby("category").agg({"amount_x": "sum"}).reset_index()
-    )
-    sum_by_cat_actual = sum_by_cat_actual.rename(columns={"amount_x": "amount"})
-
-    sum_by_cat_budget = (
-        sum_by_cat_budget.groupby("category").agg({"amount_x": "sum"}).reset_index()
-    )
-    sum_by_cat_budget = sum_by_cat_budget.rename(columns={"amount_x": "amount"})
-
-    ### HARDCODED BUDGET FROM 2024 ####
-    df_from_2024 = pd.DataFrame(
-        {
-            "Tax budgeted": [3074.00],
-            "Emergency budgeted": [13153.00],
-            "Cushion budgeted": [12387.00],
-            "Travel budgeted": [2455.00],
-            "ETF budgeted": [0.00],
-            "Interest budgeted": [0.00],
-            "Investment budgeted": [0.00],
-        }
-    )
-    # Creates a DataFrame with one column, keys as rows
-
-    df_from_2024 = df_from_2024.melt(var_name="category", value_name="amount")
-
-    # print(df_from_2024.head())
-
-    combined_budgeted = pd.concat(
-        [df_from_2024, sum_by_cat_budget, sum_by_cat_actual], axis=0, ignore_index=True
-    )
-    combined_budgeted[["category", "type"]] = combined_budgeted["category"].str.split(
-        " ", expand=True
-    )
-
-    combined_budgeted = (
-        combined_budgeted.groupby("category").agg({"amount": "sum"}).reset_index()
-    )
-
-    sum_b = combined_budgeted["amount"].sum()
-
-    balance = f"${sum_b.sum():,.0f}"
-
-    st.metric(
-        "Bank Balance",
-        value=balance,
-        label_visibility="visible",
-        border=True,
-    )
-
-
 def get_bank_balance_2(
     merged_df,
     merged_df_budgeted,
     merged_df_actual,
     renamed_df_with_diff,
     df_raw_interest,
+    df_income_grouped,
 ):
     """
     Calculate bank balance using:
@@ -163,30 +103,20 @@ def get_bank_balance_2(
     3. Actual amounts (current year)
     4. Plus the diff/variance from main calculation
     """
-    # st.subheader("📊 Balances")
-    # max_year = merged_df["year"].max()
-    # max_year_actual = merged_df_actual["year"].max()
-
-    # Get current year budgeted amounts
-    # sum_by_cat_budget = merged_df_budgeted[merged_df_budgeted["year"] == max_year]
+    st.subheader("📊 Balances")
     sum_by_cat_budget = (
         merged_df_budgeted.groupby("category").agg({"amount": "sum"}).reset_index()
     )
     sum_by_cat_actual = merged_df_actual.copy()
 
-    # sum_by_cat_budget = sum_by_cat_budget.rename(columns={"amount_x": "amount"})
     total_budgeted = sum_by_cat_budget["amount"].sum()
 
-    st.write(f"sum budget by cat{total_budgeted}")
-    # Get current year actual amounts
-    # sum_by_cat_actual = merged_df_actual[merged_df_actual["year"] == max_year]
+    # st.write(f"sum budget by cat{total_budgeted}")
+
 
     sum_by_cat_actual_interest = df_raw_interest[
         df_raw_interest["category"] == "Interest"
     ]
-    # sum_by_cat_actual_interest = sum_by_cat_actual_interest[
-    #     sum_by_cat_actual_interest["year"] == max_year
-    # ]
 
     sum_by_cat_actual_interest = (
         sum_by_cat_actual_interest.groupby("category")
@@ -195,10 +125,36 @@ def get_bank_balance_2(
     )
     total_interest = sum_by_cat_actual_interest["amount"].sum() * -1
 
+#### INCOME  ##########
+    sum_by_cat_income = (
+        df_income_grouped.groupby("category")
+        .agg({"amount": "sum"})
+        .reset_index()
+    )
+
+    total_income = sum_by_cat_income["amount"].sum()
+
+
+#### SPEND  ##########
+    sum_by_cat_spend = (
+        merged_df.groupby("category")
+        .agg({"actual": "sum"})
+        .reset_index()
+    )
+
+    total_spend = sum_by_cat_spend["actual"].sum()
+
+
     sum_by_cat_actual = (
         sum_by_cat_actual.groupby("category").agg({"amount": "sum"}).reset_index()
     )
     # sum_by_cat_actual = sum_by_cat_actual.rename(columns={"amount": "amount"})
+
+    sum_by_cat_actual_for_table = sum_by_cat_actual.copy()
+
+    sum_by_cat_actual_for_table["amount"] = sum_by_cat_actual_for_table["amount"] * -1
+    # st.dataframe(sum_by_cat_actual_for_table)
+
 
     total_actual = sum_by_cat_actual["amount"].sum()
 
@@ -228,50 +184,40 @@ def get_bank_balance_2(
     total_df_from_2024 = df_from_2024["amount"].sum()
 
     # Combine: 2024 historical + current budgeted + current actual
-    combined_budgeted = pd.concat(
-        [df_from_2024, sum_by_cat_budget, sum_by_cat_actual], axis=0, ignore_index=True
+    combined_accrual_df = pd.concat(
+        [sum_by_cat_budget,df_from_2024,sum_by_cat_actual_for_table ], axis=0, ignore_index=True
     )
 
-    # Split category into name and type (e.g., "ETF budgeted" -> "ETF", "budgeted")
-    combined_budgeted[["category", "type"]] = combined_budgeted["category"].str.split(
-        " ", expand=True
-    )
+    # Split category into name and type (e.g., "ETF budgeted" -> "ETF", "budgeted") 
+    combined_accrual_df["category"] = (
+    combined_accrual_df["category"].str.split().str[0]
+)
 
     # Group by category and sum amounts
-    combined_budgeted = (
-        combined_budgeted.groupby("category").agg({"amount": "sum"}).reset_index()
-    )
-    sum_by_cat_actual_interest_beforemerge = sum_by_cat_actual_interest.copy()
-    sum_by_cat_actual_interest_beforemerge["amount"] = (
-        sum_by_cat_actual_interest_beforemerge["amount"] * -1
+    combined_accrual_df = (
+        combined_accrual_df.groupby("category").agg({"amount": "sum"}).reset_index()
     )
 
-    combined_budgeted_interest = pd.concat(
-        [combined_budgeted, sum_by_cat_actual_interest_beforemerge],
-        axis=0,
-        ignore_index=True,
-    )
 
-    combined_budgeted_interest = (
-        combined_budgeted_interest.groupby("category")
-        .agg({"amount": "sum"})
-        .reset_index()
-    )
-    # Get base sum (ETF budgeted + Historical 2024 - ETF Actual)
-    base_sum = combined_budgeted["amount"].sum()
-    st.write(f"total base : {base_sum}")
 
-    # # Now add the diff from main.py
-    # # Get the total diff/variance from renamed_df
-    total_diff = sum_by_cat_var["diff"].sum()
-
+    total_diff = total_income - total_spend
     # Final bank balance = base_sum + total_diff
-    final_balance = base_sum + total_interest - total_actual - total_df_from_2024
+    final_balance = (total_df_from_2024 + total_budgeted - total_actual ) +(total_income - total_spend) 
 
-    st.write(f"total actuals : {total_actual}")
-    st.write(f"total diff : {total_diff}")
-    st.write(f"total from 2024 : {total_df_from_2024}")
-    st.write(f"total int : {total_interest}")
+######## DEBUG SECTION 10 Jan 2025 ###########
+
+    # st.write(f"total actuals : {total_actual}")
+    # st.write(f"total from 2024 : {total_df_from_2024} = 35,540")
+    # st.write(f"total actuals : {total_actual} = 48,695.39")
+    # st.write(f"total var : {total_income - total_spend} = -1,262")
+    # st.write(f"total budgeted : {total_budgeted} = 55,460")
+    # st.write(f"total int : {total_interest} = -2,262.05")
+    # st.write(f"total income : {total_income} = 108,755")    
+    # st.write(f"total spend : {total_spend} = 110,017 ")
+    # st.write(f"semi final balance : {(total_df_from_2024 + total_budgeted - total_actual)} = 42,305")
+    # st.write(f"final balance : {final_balance} = 41,047")
+
+    # st.dataframe(combined_accrual_df)
 
     balance = f"${final_balance:,.0f}"
 
@@ -282,73 +228,32 @@ def get_bank_balance_2(
         st.metric(
             "Bank Balance",
             value=balance,
-            # delta=f"${total_diff:,.0f} variance",
+            delta=f"${total_diff:,.0f} under / over budget",
+            delta_color="inverse" if total_diff < 0 else "normal",
             label_visibility="visible",
             border=True,
         )
 
-        # # Create a copy to avoid modifying original data
-        # display_df = combined_budgeted_interest.copy()
-        # display_df["amount"] = display_df["amount"].apply(lambda x: f"${x:,.2f}")
 
-        # cats_to_keep = ["Cushion", "Emergency", "Interest"]
 
-        # # df_inv = df_tnx[df_tnx["category"].isin(cats_to_keep)]
-
-        # display_df_accrual = display_df[display_df["category"].isin(cats_to_keep)]
-        # display_df_accrual = pd.to_numeric(display_df_accrual["amount"])
-
-        # total_accrual = display_df_accrual["amount"].sum()
-
-        # display_df_cash = display_df[~display_df["category"].isin(cats_to_keep)]
-        # total_cash = display_df[~display_df["category"].isin(cats_to_keep)][
-        #     "amount"
-        # ].sum()
-
-        # Create a copy to avoid modifying original data
-        display_df = combined_budgeted_interest.copy()
-        # DO NOT format as currency here! Keep as numbers for calculations
-
-        cats_to_keep = ["Cushion", "Emergency", "Interest"]
-
-        # Calculate ACCRUAL total
-        display_df_accrual = display_df[~display_df["category"].isin(cats_to_keep)]
-        total_accrual = display_df_accrual["amount"].sum()
-
-        # Calculate CASH total
-        display_df_cash = display_df[display_df["category"].isin(cats_to_keep)]
-        total_cash = display_df_cash["amount"].sum()
-
-        # Only format for display if needed
-        display_df_display = display_df.copy()
-        display_df_display["amount"] = display_df_display["amount"].apply(
-            lambda x: f"${x:,.2f}"
-        )
-
-        with st.expander("View Detailed Distribution"):
-            st.subheader(f"Cash: ${total_cash:,.0f}")
+        with st.expander("View Detailed Acrual"):
             st.dataframe(
-                display_df_cash,
-                use_container_width=True,
-            )
-            st.subheader(f"Accrual: ${total_accrual:,.0f}")
-            st.dataframe(
-                display_df_accrual,
+                combined_accrual_df,
                 use_container_width=True,
             )
 
         with col2:
             # Format amounts for display
             formatted_amounts = [
-                f"${x:,.2f}" for x in combined_budgeted_interest["amount"]
+                f"${x:,.2f}" for x in combined_accrual_df["amount"]
             ]
 
             # 3. Donut chart for balance distribution
             fig3 = go.Figure(
                 data=[
                     go.Pie(
-                        labels=combined_budgeted_interest["category"],
-                        values=combined_budgeted_interest["amount"],
+                        labels=combined_accrual_df["category"],
+                        values=combined_accrual_df["amount"],
                         hole=0.3,
                         textinfo="label+value",  # Show label and raw value
                         texttemplate="%{label}<br>%{value:$,.2f}<br>(%{percent:.1%})",  # Custom format
@@ -363,95 +268,11 @@ def get_bank_balance_2(
             )
             fig3.update_layout(title="Balances Distribution")
             st.plotly_chart(fig3, use_container_width=True)
-        # """DEBUG SECTION"""
-
-    # st.dataframe(df_from_2024)
-    # st.write("Variance : ", total_diff)
-    # # st.write("Total 2024 : ", total_df_from_2024)
-    # # st.write("Total Budgeted : ", total_budgeted)
-    # # st.write("Total Actual : ", total_actual)
-    # st.write("Total Interest : ", total_interest)
-    # st.write("Combined Bdget : ", total_df_from_2024 + total_budgeted)
 
     return final_balance
 
 
-def get_bank_balance_simple(renamed_df, previous_balance=0):
-    """
-    Calculate bank balance based on variance (budget - actual)
-    plus carryover from previous period
-    """
-    # Sum all variances
-    total_variance = renamed_df["Variance"].sum()
 
-    # Bank balance = Previous balance + Current variance
-    bank_balance = previous_balance + total_variance
-
-    formatted_balance = f"${bank_balance:,.2f}"
-
-    st.metric(
-        "Bank Balance",
-        value=formatted_balance,
-        delta=f"{total_variance:,.2f}",
-        label_visibility="visible",
-        border=True,
-    )
-
-    return bank_balance
-
-
-# def get_travel_balances(
-#     merged_df,
-#     merged_df_budgeted,
-#     merged_df_actual,
-#     renamed_df_with_diff,
-#     df_raw_interest,
-# ):
-
-#     # Display with delta showing the diff contribution
-#     col1, col2 = st.columns(2)
-
-#     with col1:
-#         st.metric(
-#             "Bank Balance",
-#             value=balance,
-#             delta=f"${total_diff:,.0f} variance",
-#             label_visibility="visible",
-#             border=True,
-#         )
-
-#         # Create a copy to avoid modifying original data
-#         display_df = combined_budgeted_interest.copy()
-#         display_df["amount"] = display_df["amount"].apply(lambda x: f"${x:,.2f}")
-
-#         st.dataframe(
-#             display_df,
-#             use_container_width=True,
-#         )
-#     with col2:
-#         # Format amounts for display
-#         formatted_amounts = [f"${x:,.2f}" for x in combined_budgeted_interest["amount"]]
-
-#         # 3. Donut chart for balance distribution
-#         fig3 = go.Figure(
-#             data=[
-#                 go.Pie(
-#                     labels=combined_budgeted_interest["category"],
-#                     values=combined_budgeted_interest["amount"],
-#                     hole=0.3,
-#                     textinfo="label+value",  # Show label and raw value
-#                     texttemplate="%{label}<br>%{value:$,.2f}<br>(%{percent:.1%})",  # Custom format
-#                     textposition="inside",
-#                     marker=dict(colors=px.colors.qualitative.Set3),
-#                     hovertemplate="<b>%{label}</b><br>"
-#                     + "Amount: %{value:$,.2f}<br>"
-#                     + "Percentage: %{percent:.1%}<br>"
-#                     + "<extra></extra>",
-#                 )
-#             ]
-#         )
-#         fig3.update_layout(title="Balances Distribution")
-#         st.plotly_chart(fig3, use_container_width=True)
 
 
 def metric_sections_travel(data):
